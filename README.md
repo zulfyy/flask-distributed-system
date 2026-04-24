@@ -51,8 +51,11 @@
 > A distributed system where users can upload files, handled by a Flask backend deployed on K3s.
 
 ### Architecture
+ ![Architecture System](https://github.com/zulfyy/flask-distributed-system/blob/main/ss/Architecture.png)
 ```
 Client (Browser)
+      |
+Load Balancer (Traefik)
       |
 Flask App (Python) (K3s Cluster) 3x Replica
       |
