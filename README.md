@@ -1,3 +1,8 @@
+![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![Flask](https://img.shields.io/badge/Flask-000000?style=for-the-badge&logo=flask&logoColor=white)
+![K3s](https://img.shields.io/badge/K3s-FFC61C?style=for-the-badge&logo=k3s&logoColor=black)
+![CloudNativePG](https://img.shields.io/badge/CloudNativePG-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
 # 📋 TODO — Parallel and Distributed Computing
 > Informatics Engineering Semester 4 · LILIS ANGGRAINI, S.Kom., M.Kom
 
