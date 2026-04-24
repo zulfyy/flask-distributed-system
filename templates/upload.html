@@ -1,0 +1,73 @@
+<!doctype html>
+    <title>Upload new File</title>
+    <style>table {border-collapse: collapse;} </style>
+    <h1>Upload new File</h1>
+
+    <p>IP kamu adalah: <strong>{{ user_ip }}</strong></p>
+
+    
+
+    <form method=post enctype=multipart/form-data>
+      <input type=file name=file>
+      <input type=submit value=Upload>
+    </form>
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+            <p class="flash-{{ category }}">{{ message }}</p>
+        {% endfor %}
+    {% endwith %}
+    <br><br><br><br>
+    <table border='1'>
+        <thead>
+            <th>No</th>
+            <th>Nama File</th>
+            <th>Tanggal di upload</th>
+            <th>IP</th>
+            <th>Aksi</th>
+        </thead>
+        <tbody>
+        {% for file in files %}
+            <tr>
+                <td>{{ file[0] }}</td>
+                <td align="center">
+                    <a href="{{ url_for('download_file', name=file[1]) }}">
+                        <img src="{{ url_for('download_file', name=file[1]) }}" alt="{{ file[1]}}" height="100">
+                    </a>
+                </td>
+                <td align="center">{{ file[2] }}</td>
+                <td align="center">{{ file[3]}}</td>
+                <td><a href="{{ url_for('delete_file', id=file[0])}}" onclick="return confirm('Hapus data {{file[0]}}?')">Hapus</a></td>
+            </tr>
+        {% else %}
+            <tr>
+                <td colspan="4" style="text-align: center;">Data masih kosong</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    <time id="realtime-clock" datetime=""></time>
+
+    <script>
+    function updateClock() {
+        const now = new Date();
+        const clockElement = document.getElementById('realtime-clock');
+        
+        // Update human-readable display
+        clockElement.innerText = now.toLocaleTimeString();
+        
+        // Update machine-readable attribute (ISO format)
+        clockElement.setAttribute('datetime', now.toISOString());
+    }
+
+    // Update immediately on load, then every second
+    updateClock();
+    setInterval(updateClock, 1000);
+
+    // Clear file input kalau halaman di-load dari cache (back button)
+    window.addEventListener('pageshow', function() {
+        document.querySelector('input[type="file"]').value = '';
+    });
+
+    </script>

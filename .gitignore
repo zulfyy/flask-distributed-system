@@ -1,0 +1,12 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+env/
+
+# Project Files
+uploads/*
+!uploads/.gitkeep
+
+# Environments & Secrets
+.env

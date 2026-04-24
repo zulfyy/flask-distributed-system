@@ -1,0 +1,12 @@
+APP_MODE        =DEV
+APP_SECRET_KEY  =secret
+
+
+# Database
+DB_USER=user
+DB_NAME=db
+DB_PASSWORD=password
+DB_HOST=localhost
+DB_PORT=5432
+
+# API

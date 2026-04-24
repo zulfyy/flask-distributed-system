@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-flask
+  namespace: flask-container
+  labels:
+    app: app-label-flask
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: app-label-flask
+  template:
+    metadata:
+      labels:
+        app: app-label-flask
+    spec:
+      containers:
+      - name: app-flask
+        image: muhammadzulfy/flask-upload:v1
+        ports:
+        - containerPort: 5000
+        volumeMounts:
+        - name: flask-volume
+          mountPath: /www/main/uploads
+      volumes:              
+      - name: flask-volume
+        emptyDir: {}        
