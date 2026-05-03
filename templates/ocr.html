@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple OCR</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        /* Efek hover zoom untuk perbandingan */
+        .img-compare:hover {
+            transform: scale(1.05);
+            transition: all 0.3s ease-in-out;
+            cursor: zoom-in;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen pb-10">
+    <div class="max-w-2xl mx-auto mt-10 p-6 bg-white rounded-xl shadow-lg">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                <i data-lucide="cpu" class="text-blue-600"></i> Simple OCR
+            </h2>
+            <button onclick="clearAll()" class="text-sm text-red-500 hover:text-red-700 flex items-center gap-1 font-medium">
+                <i data-lucide="refresh-ccw" class="w-4 h-4"></i> Reset
+            </button>
+        </div>
+
+        <form id="ocrForm" method="POST" enctype="multipart/form-data" onsubmit="showLoading()">
+            <div class="space-y-4">
+                <!-- Dropzone/Input Area -->
+                <div class="relative border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-blue-400 transition-colors bg-gray-50">
+                    <input name="file" id="fileInput" type="file" required onchange="previewImage(event)"
+                           class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
+                    <div class="text-center" id="previewPlaceholder">
+                        <i data-lucide="image-plus" class="mx-auto w-10 h-10 text-gray-400 mb-2"></i>
+                        <p class="text-sm text-gray-600">Klik atau seret gambar ke sini</p>
+                    </div>
+                    <!-- Image Preview Area -->
+                    <img id="imagePreview" class="hidden mx-auto max-h-64 rounded shadow-sm img-compare" alt="Preview">
+                </div>
+
+                <button id="submitBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition flex justify-center items-center gap-2 shadow-md" type="submit">
+                    <span id="btnIcon"><i data-lucide="zap" class="w-5 h-5"></i></span>
+                    <span id="btnText">Mulai Scan Teks</span>
+                </button>
+            </div>
+        </form>
+
+        <!-- Perbandingan Hasil -->
+        {% if result %}
+        <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="space-y-2">
+                <p class="text-xs font-bold text-gray-500 uppercase tracking-wider text-center">Gambar Input</p>
+                <!-- Gambar yang di-upload ditampilkan kembali di sini -->
+                <div class="bg-gray-200 rounded-lg overflow-hidden border border-gray-300 flex items-center justify-center min-h-[200px]">
+                    <img src="" id="finalImage" class="w-full h-full object-contain img-compare">
+                </div>
+            </div>
+
+            <div class="space-y-2">
+                <p class="text-xs font-bold text-gray-500 uppercase tracking-wider text-center">Hasil Teks</p>
+                <div class="bg-blue-50 p-4 rounded-lg border border-blue-200 relative min-h-[200px]">
+                    <button onclick="copyToClipboard()" id="copyBtn" class="absolute top-2 right-2 p-1.5 bg-white border border-blue-200 rounded-md hover:bg-blue-100 transition-all shadow-sm">
+                        <i id="copyIcon" data-lucide="copy" class="w-4 h-4 text-blue-600"></i>
+                    </button>
+                    <p id="ocrResultText" class="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{{ result }}</p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        // Preview gambar saat dipilih
+        function previewImage(event) {
+            const reader = new FileReader();
+            reader.onload = function() {
+                const output = document.getElementById('imagePreview');
+                const placeholder = document.getElementById('previewPlaceholder');
+                output.src = reader.result;
+                output.classList.remove('hidden');
+                placeholder.classList.add('hidden');
+                
+                // Simpan ke localStorage sebentar agar tetap ada setelah reload page (opsional)
+                localStorage.setItem('lastImage', reader.result);
+            };
+            reader.readAsDataURL(event.target.files[0]);
+        }
+
+        // Tampilkan gambar di bagian perbandingan jika ada hasil
+        window.onload = function() {
+            const lastImage = localStorage.getItem('lastImage');
+            const finalImg = document.getElementById('finalImage');
+            if (lastImage && finalImg) {
+                finalImg.src = lastImage;
+            }
+        };
+
+        function showLoading() {
+            const btn = document.getElementById('submitBtn');
+            const btnText = document.getElementById('btnText');
+            const btnIcon = document.getElementById('btnIcon');
+            btn.disabled = true;
+            btn.classList.add('opacity-75', 'cursor-not-allowed');
+            btnIcon.innerHTML = '<div class="loader"></div>';
+            btnText.innerText = 'Memproses Gambar...';
+        }
+
+        function copyToClipboard() {
+            const text = document.getElementById('ocrResultText').innerText;
+            const btnIcon = document.getElementById('copyIcon');
+            navigator.clipboard.writeText(text).then(() => {
+                btnIcon.setAttribute('data-lucide', 'check');
+                lucide.createIcons();
+                setTimeout(() => {
+                    btnIcon.setAttribute('data-lucide', 'copy');
+                    lucide.createIcons();
+                }, 2000);
+            });
+        }
+
+        function clearAll() {
+            localStorage.removeItem('lastImage');
+            window.location.href = "/";
+        }
+    </script>
+</body>
+</html>

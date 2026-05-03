@@ -5,6 +5,7 @@ load_dotenv()
 
 class Config:
     APP_MODE = os.getenv("APP_MODE")
+    APP_SECRET_KEY = os.getenv("APP_SECRET_KEY")
     DB_USER = os.getenv("DB_USER")
     DB_NAME = os.getenv("DB_NAME")
     DB_PASSWORD = os.getenv("DB_PASSWORD")

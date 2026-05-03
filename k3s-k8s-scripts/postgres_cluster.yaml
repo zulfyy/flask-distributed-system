@@ -1,0 +1,38 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: postgres-cluster
+  namespace: flask-container
+spec:
+  instances: 3
+
+  postgresql:
+    parameters:
+      max_connections: "50"
+      shared_buffers: "128MB"
+      work_mem: "4MB"
+
+  storage:
+    size: 5Gi
+    storageClass: local-path
+
+  affinity:
+    enablePodAntiAffinity: true
+    topologyKey: kubernetes.io/hostname
+    nodeSelector:
+      role: app
+
+  bootstrap:
+    initdb:
+      database: upload_db
+      owner: user_upload
+      secret:
+        name: postgres-secret
+
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"

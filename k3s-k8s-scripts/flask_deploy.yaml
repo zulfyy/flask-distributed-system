@@ -26,3 +26,16 @@ spec:
       volumes:              
       - name: flask-volume
         emptyDir: {}        
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: svc-flask
+  namespace: flask-container
+spec:
+  selector:
+    app: app-label-flask
+  ports:
+  - port: 80
+    targetPort: 5000
+  type: NodePort

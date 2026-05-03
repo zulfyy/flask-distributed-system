@@ -41,6 +41,7 @@ cursor.execute("""
         ip_address VARCHAR(45)
     )"""
 )
+tes.connection.commit()
 
 
 if tes.connect():
@@ -110,11 +111,12 @@ def delete_file(id):
     return redirect('/')
 
 if __name__ == '__main__':
-    if app.config['APP_MODE'].lower() == 'prod' or app.config['APP_MODE'].lower() == 'production' :
-        # Mode Production
-        print("Running in PRODUCTION mode")
-        app.run(host='0.0.0.0', port=5000, debug=False)
-    else:
-        # Mode Development (Default)
-        print("Running in DEVELOPMENT mode")
-        app.run(host='127.0.0.1', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=False)
+    # if app.config['APP_MODE'].lower() == 'prod' or app.config['APP_MODE'].lower() == 'production' :
+    #     # Mode Production
+    #     print("Running in PRODUCTION mode")
+    #     app.run(host='0.0.0.0', port=5000, debug=False)
+    # else:
+    #     # Mode Development (Default)
+    #     print("Running in DEVELOPMENT mode")
+    #     app.run(host='127.0.0.1', port=5000, debug=True)
