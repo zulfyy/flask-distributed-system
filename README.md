@@ -52,17 +52,17 @@
 
 ## 💡 Project
 
-> **Distributed File Upload**
-> A distributed system where users can upload files, handled by a Flask backend deployed on K3s.
+> **Distributed RemBG, Metadata-extract, Simple OCR**
+> A distributed system with HA, handled by a Flask backend deployed on K3s.
 
 ### Architecture
- ![Architecture System](https://github.com/zulfyy/flask-distributed-system/blob/main/ss/Architecture.png)
+ ![Architecture System](https://raw.githubusercontent.com/zulfyy/flask-distributed-system/refs/heads/main/ss/Architecture.jpg)
 ```
 Client (Browser)
       |
 Load Balancer (Traefik)
       |
-Flask App (Python) (K3s Cluster) 3x Replica
+Flask App (Python) (K3s Cluster) 2-3x Replica | Each have VM * 2 (For HA)
       |
 Database / Storage (K3s Cluster) 1 Main, 2 Slave with CloudNativePG
       |
