@@ -60,13 +60,15 @@
 ```
 Client (Browser)
       |
-Load Balancer (Traefik)
+Load Balancer (Traefik) (K3s Server) 
       |
-Flask App (Python) (K3s Cluster) 2-3x Replica | Each have VM * 2 (For HA)
+Flask App (Python) (K3s Cluster) 2 Worker (For HA)
       |
-Database / Storage (K3s Cluster) 1 Main, 2 Slave with CloudNativePG
+DragonFly (Cache)  (K3s Cluster) 1 Main | 1 (Optional)
       |
-Blob Storage Cloud (Still Thinking)
+Database / Storage (K3s Cluster) 1 Main, 1 Standby with CloudNativePG
+      |
+Blob Storage Cloud (Considering)
 ```
 
 ---
