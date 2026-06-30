@@ -1,0 +1,20 @@
+FROM python:3.11-slim
+
+RUN apt-get update && apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends \
+        libgl1 \
+        libglib2.0-0 && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /www/main
+COPY requirements/rembg.txt .
+COPY templates/rembg templates/rembg
+RUN pip install --no-cache-dir -r rembg.txt
+
+# download model pas build, biar container ga perlu internet pas pertama jalan
+RUN python -c "from rembg import new_session; new_session('isnet-general-use')"
+
+COPY rembg_flask.py .
+
+EXPOSE 5000
+CMD ["python", "rembg_flask.py"]

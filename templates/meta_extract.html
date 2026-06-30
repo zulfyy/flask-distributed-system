@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Metadata Extractor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f4f5f7;
+            color: #2b2d33;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 720px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 26px;
+            margin-bottom: 6px;
+        }
+
+        .subtitle {
+            color: #6b7280;
+            margin-bottom: 28px;
+            font-size: 14px;
+        }
+
+        .upload-box {
+            background: #fff;
+            border: 1px solid #e2e4e9;
+            border-radius: 10px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .upload-box form {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        input[type="file"] {
+            flex: 1;
+            min-width: 200px;
+            padding: 8px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            background: #fafafa;
+        }
+
+        button {
+            background: #2563eb;
+            color: #fff;
+            border: none;
+            padding: 10px 22px;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        button:hover {
+            background: #1d4ed8;
+        }
+
+        .flash {
+            background: #fef2f2;
+            color: #b91c1c;
+            border: 1px solid #fecaca;
+            padding: 10px 14px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .result-box {
+            background: #fff;
+            border: 1px solid #e2e4e9;
+            border-radius: 10px;
+            padding: 24px;
+        }
+
+        .result-box h2 {
+            font-size: 18px;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #f0f1f3;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 140px 1fr;
+            gap: 10px 16px;
+            margin-bottom: 24px;
+            font-size: 14px;
+        }
+
+        .info-grid .label {
+            color: #6b7280;
+            font-weight: 500;
+        }
+
+        .info-grid .value {
+            word-break: break-word;
+        }
+
+        .exif-section h3 {
+            font-size: 15px;
+            margin-bottom: 12px;
+            color: #374151;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        table tr {
+            border-bottom: 1px solid #f0f1f3;
+        }
+
+        table tr:last-child {
+            border-bottom: none;
+        }
+
+        table td {
+            padding: 8px 6px;
+            vertical-align: top;
+        }
+
+        table td:first-child {
+            color: #6b7280;
+            width: 35%;
+            font-weight: 500;
+        }
+
+        .empty-exif {
+            color: #9ca3af;
+            font-size: 14px;
+            font-style: italic;
+        }
+
+        .gps-box {
+            background: #f0f9ff;
+            border: 1px solid #bae6fd;
+            border-radius: 6px;
+            padding: 12px;
+            margin-top: 10px;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Image Metadata Extractor</h1>
+        <p class="subtitle">Upload gambar buat liat metadata & info EXIF-nya</p>
+
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="flash">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="upload-box">
+            <form method="POST" enctype="multipart/form-data">
+                <input type="file" name="file" accept=".png,.jpg,.jpeg,.tiff,.webp" required>
+                <button type="submit">Extract Metadata</button>
+            </form>
+        </div>
+
+        {% if metadata %}
+        <div class="result-box">
+            <h2>Hasil Extract</h2>
+
+            <div class="info-grid">
+                <div class="label">Filename</div>
+                <div class="value">{{ metadata.Filename }}</div>
+
+                <div class="label">Format</div>
+                <div class="value">{{ metadata.Format }}</div>
+
+                <div class="label">Mode</div>
+                <div class="value">{{ metadata.Mode }}</div>
+
+                <div class="label">Size</div>
+                <div class="value">{{ metadata.Size }}</div>
+            </div>
+
+            <div class="exif-section">
+                <h3>Data EXIF</h3>
+
+                {% if metadata.Exif %}
+                    <table>
+                        {% for key, value in metadata.Exif.items() %}
+                            {% if key != 'GPS' %}
+                            <tr>
+                                <td>{{ key }}</td>
+                                <td>{{ value }}</td>
+                            </tr>
+                            {% endif %}
+                        {% endfor %}
+                    </table>
+
+                    {% if metadata.Exif.GPS %}
+                    <div class="gps-box">
+                        <strong>Lokasi GPS ditemukan:</strong><br>
+                        {% for key, value in metadata.Exif.GPS.items() %}
+                            {{ key }}: {{ value }}<br>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                {% else %}
+                    <p class="empty-exif">Tidak ada data EXIF di gambar ini. Biasanya kejadian kalo gambar dari screenshot, hasil edit, atau memang udah dihapus metadatanya.</p>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</body>
+</html>
