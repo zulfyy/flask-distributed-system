@@ -62,7 +62,7 @@ def extract_metadata(image_pil, filename):
     return info
 
 
-@app.route('/', methods=['GET', 'POST'])
+@app.route('/meta-extract', methods=['GET', 'POST'])
 def upload_file():
     metadata = None
 
@@ -92,4 +92,4 @@ def upload_file():
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5001, debug=True)

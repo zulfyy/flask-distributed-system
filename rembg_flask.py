@@ -45,7 +45,8 @@ def remove_background(image_pil):
         return image_pil
 
 
-@app.route('/', methods=['GET', 'POST'])
+@app.route('/rembg', methods=['GET', 'POST'])
+@app.route('/rembg/', methods=['GET', 'POST'])
 def upload_file():
     if request.method == 'POST':
         if 'file' not in request.files:
@@ -99,7 +100,7 @@ def upload_file():
                             filename=filename)
 
 
-@app.route('/image/<kind>/<file_id>')
+@app.route('/rembg/image/<kind>/<file_id>')
 def serve_image(kind, file_id):
     folder = UPLOAD_FOLDER if kind == 'original' else RESULT_FOLDER
     suffix = '_original.png' if kind == 'original' else '_result.png'
@@ -110,7 +111,7 @@ def serve_image(kind, file_id):
     return send_file(path, mimetype='image/png')
 
 
-@app.route('/download')
+@app.route('/rembg/download')
 def download():
     file_id = session.get('file_id', None)
     original_filename = session.get('filename', 'image')
@@ -135,7 +136,7 @@ def download():
         return redirect(url_for('upload_file'))
 
 
-@app.route('/clear')
+@app.route('/rembg/clear')
 def clear():
     file_id = session.get('file_id')
     if file_id:

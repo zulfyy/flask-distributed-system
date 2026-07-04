@@ -5,3 +5,17 @@ __pycache__/
 uploads/
 .git/
 *.md
+
+# Python
+.venv/
+.venv_api/
+env/
+
+# Project Files
+uploads/*
+results/*
+!uploads/.gitkeep
+
+#Custom
+k3s-k8s-scripts/*
+terraform/*

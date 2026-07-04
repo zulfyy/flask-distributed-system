@@ -8,7 +8,7 @@ RUN apt-get update && apt-get upgrade -y && \
 
 WORKDIR /www/main
 COPY requirements/rembg.txt .
-COPY templates/rembg templates/rembg
+COPY templates/remove_bg.html templates/remove_bg.html
 RUN pip install --no-cache-dir -r rembg.txt
 
 # download model pas build, biar container ga perlu internet pas pertama jalan

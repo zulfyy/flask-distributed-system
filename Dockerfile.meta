@@ -5,9 +5,9 @@ RUN apt-get update && apt-get upgrade -y && \
 
 WORKDIR /www/main
 COPY requirements/meta_extract.txt .
-COPY templates/meta_extract templates/meta_extract
+COPY templates/meta_extract.html templates/meta_extract.html
 RUN pip install --no-cache-dir -r meta_extract.txt
 COPY meta_extract_flask.py .
 
-EXPOSE 5000
+EXPOSE 5001
 CMD ["python", "meta_extract_flask.py"]

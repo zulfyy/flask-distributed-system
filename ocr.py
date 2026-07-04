@@ -16,7 +16,7 @@ def allowed_file(filename):
 
 reader = easyocr.Reader(['en','id'], gpu=True)
 
-@app.route('/', methods=['GET', 'POST'])
+@app.route('/ocr/', methods=['GET', 'POST'])
 def upload_file():
     if request.method == 'POST':
         if 'file' not in request.files:
@@ -73,5 +73,5 @@ def upload_file():
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5002, debug=True)
 
