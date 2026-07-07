@@ -1,142 +1,249 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simple OCR</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <style>
-        .loader {
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #3b82f6;
-            border-radius: 50%;
-            width: 18px;
-            height: 18px;
-            animation: spin 1s linear infinite;
-            display: inline-block;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        
-        /* Efek hover zoom untuk perbandingan */
-        .img-compare:hover {
-            transform: scale(1.05);
-            transition: all 0.3s ease-in-out;
-            cursor: zoom-in;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Akarstack · OCR</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink: #14181f; --ink-soft: #1c222c; --ink-line: #2a3140;
+    --paper: #f6f2e8; --paper-dim: #eae3d2; --paper-line: #ddd3ba;
+    --scan: #f2a63b; --scan-strong: #d98a1f;
+    --text-on-ink: #e8e6df; --text-on-ink-dim: #9aa0ad;
+    --text-on-paper: #24211a; --text-on-paper-dim: #6b6558;
+    --danger: #c65b4e; --ok: #5a9d6a; --radius: 14px;
+  }
+  * { box-sizing: border-box; }
+  body{ margin:0; min-height:100vh; background: radial-gradient(circle at 15% 0%, rgba(242,166,59,0.08), transparent 45%), var(--ink); color: var(--text-on-ink); font-family: 'Inter', system-ui, sans-serif; padding: 56px 20px 80px; }
+  .page{ max-width: 880px; margin: 0 auto; }
+  .top-row{ display:flex; justify-content:space-between; align-items:flex-end; gap: 16px; margin-bottom: 34px; flex-wrap: wrap; }
+  .eyebrow{ font-family:'JetBrains Mono', monospace; font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--scan); margin: 0 0 10px; }
+  h1{ font-family:'Space Grotesk', sans-serif; font-weight: 700; font-size: clamp(28px, 4vw, 38px); line-height: 1.1; margin: 0 0 8px; letter-spacing: -0.01em; }
+  .subtitle{ color: var(--text-on-ink-dim); font-size: 15px; margin: 0; max-width: 46ch; }
+  .reset-link{ display:inline-flex; align-items:center; gap:6px; background:none; border:1px solid var(--ink-line); color: var(--text-on-ink-dim); font-family:'Inter', sans-serif; font-size: 13px; font-weight: 500; padding: 9px 14px; border-radius: 999px; cursor:pointer; transition: border-color .15s ease, color .15s ease; white-space: nowrap; }
+  .reset-link:hover{ border-color: var(--scan); color: var(--scan); }
+  .reset-link:focus-visible{ outline: 2px solid var(--scan); outline-offset: 2px; }
+  .reset-link svg{ width:14px; height:14px; }
+  .flash-stack{ display:flex; flex-direction:column; gap:8px; margin-bottom: 22px; }
+  .flash{ display:flex; gap:10px; align-items:flex-start; background: rgba(242,166,59,0.08); border-left: 3px solid var(--scan); color: var(--text-on-ink); font-size: 13.5px; padding: 12px 14px; border-radius: 6px; }
+  .flash svg{ flex-shrink:0; width:16px; height:16px; margin-top:1px; color: var(--scan); }
+  .card{ background: var(--paper); color: var(--text-on-paper); border-radius: var(--radius); padding: 28px; box-shadow: 0 24px 60px -24px rgba(0,0,0,0.55); }
+  .dropzone{ position: relative; border: 1.5px dashed var(--paper-line); border-radius: 10px; background: var(--paper-dim); padding: 30px 20px; text-align:center; overflow: hidden; transition: border-color .15s ease; }
+  .dropzone:hover, .dropzone.dragging{ border-color: var(--scan-strong); }
+  .dropzone input[type=file]{ position:absolute; inset:0; width:100%; height:100%; opacity:0; cursor:pointer; z-index:2; }
+  .drop-placeholder{ pointer-events:none; }
+  .drop-placeholder svg{ width: 34px; height:34px; color: var(--text-on-paper-dim); margin-bottom: 10px; }
+  .drop-placeholder p{ margin: 0; font-size: 14px; color: var(--text-on-paper-dim); }
+  .drop-placeholder .filetypes{ font-family:'JetBrains Mono', monospace; font-size:11px; margin-top:6px; letter-spacing:0.03em; }
+  .preview-wrap{ position: relative; display:none; max-width: 260px; margin: 0 auto; }
+  .preview-wrap.active{ display:block; }
+  .preview-wrap img{ display:block; width:100%; border-radius: 6px; }
+  .corner{ position:absolute; width:16px; height:16px; border-color: var(--scan); }
+  .corner.tl{ top:-6px; left:-6px; border-top:2px solid; border-left:2px solid; }
+  .corner.tr{ top:-6px; right:-6px; border-top:2px solid; border-right:2px solid; }
+  .corner.bl{ bottom:-6px; left:-6px; border-bottom:2px solid; border-left:2px solid; }
+  .corner.br{ bottom:-6px; right:-6px; border-bottom:2px solid; border-right:2px solid; }
+  .scan-line{ position:absolute; left:0; right:0; top:0; height: 2px; background: linear-gradient(90deg, transparent, var(--scan), transparent); box-shadow: 0 0 12px 2px rgba(242,166,59,0.6); opacity:0; pointer-events:none; }
+  .scanning .scan-line{ opacity:1; animation: sweep 1.4s ease-in-out infinite; }
+  @keyframes sweep{ 0%{ top: 4%; } 50%{ top: 92%; } 100%{ top: 4%; } }
+  @media (prefers-reduced-motion: reduce){ .scanning .scan-line{ animation: none; opacity: .7; top: 50%; } }
+  button.submit{ width:100%; margin-top: 18px; display:flex; align-items:center; justify-content:center; gap:9px; background: var(--scan); color: var(--ink); border: none; font-family:'Space Grotesk', sans-serif; font-weight: 600; font-size: 15px; padding: 14px 18px; border-radius: 9px; cursor:pointer; transition: background .15s ease, transform .1s ease; }
+  button.submit:hover{ background: var(--scan-strong); }
+  button.submit:active{ transform: translateY(1px); }
+  button.submit:disabled{ opacity:.75; cursor:not-allowed; }
+  button.submit:focus-visible{ outline: 2px solid var(--ink); outline-offset: 3px; }
+  button.submit svg{ width:18px; height:18px; }
+  .spinner{ width:16px; height:16px; border-radius:50%; border: 2px solid rgba(20,24,31,0.25); border-top-color: var(--ink); animation: spin .8s linear infinite; }
+  @keyframes spin{ to{ transform: rotate(360deg); } }
+  .results{ margin-top: 26px; display:grid; grid-template-columns: 1fr; gap: 16px; }
+  @media (min-width: 680px){ .results{ grid-template-columns: 0.85fr 1.15fr; } }
+  .panel-label{ font-family:'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-on-paper-dim); margin: 0 0 8px; }
+  .image-panel{ background: var(--paper-dim); border: 1px solid var(--paper-line); border-radius: 10px; padding: 14px; display:flex; align-items:center; justify-content:center; min-height: 220px; }
+  .image-panel img{ max-width:100%; max-height: 320px; border-radius: 6px; }
+  .output-panel{ background: var(--ink); border-radius: 10px; overflow: hidden; display:flex; flex-direction: column; min-height: 220px; }
+  .output-head{ display:flex; align-items:center; justify-content:space-between; padding: 10px 14px; border-bottom: 1px solid var(--ink-line); }
+  .output-head span{ font-family:'JetBrains Mono', monospace; font-size: 12px; color: var(--text-on-ink-dim); }
+  .copy-btn{ display:flex; align-items:center; gap:6px; background:none; border: 1px solid var(--ink-line); color: var(--text-on-ink-dim); font-family:'Inter', sans-serif; font-size: 12px; padding: 5px 10px; border-radius: 6px; cursor:pointer; transition: border-color .15s ease, color .15s ease; }
+  .copy-btn:hover{ border-color: var(--scan); color: var(--scan); }
+  .copy-btn:focus-visible{ outline: 2px solid var(--scan); outline-offset: 2px; }
+  .copy-btn svg{ width:13px; height:13px; }
+  .output-body{ flex:1; padding: 16px; font-family:'JetBrains Mono', monospace; font-size: 13px; line-height: 1.65; color: var(--text-on-ink); white-space: pre-wrap; overflow-wrap: anywhere; }
+  .output-empty{ color: var(--text-on-ink-dim); font-style: italic; }
+
+  .top-actions{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .user-chip{ font-family:'JetBrains Mono', monospace; font-size:12px; color: var(--text-on-ink-dim); border:1px solid var(--ink-line); padding:9px 14px; border-radius:999px; }
+  .user-chip b{ color: var(--text-on-ink); font-weight:600; }
+  .login-btn{ display:inline-flex; align-items:center; gap:6px; background: var(--scan); color: var(--ink); border:none; font-family:'Space Grotesk', sans-serif; font-weight:600; font-size:13px; padding: 9px 16px; border-radius: 999px; text-decoration:none; }
+  .login-btn:hover{ background: var(--scan-strong); }
+
+  .usage-badge{ font-family:'JetBrains Mono', monospace; font-size: 12px; color: var(--text-on-paper-dim); margin: 0 0 16px; display:flex; align-items:center; gap:8px; }
+  .usage-badge .bar{ flex:1; max-width:120px; height:5px; background: var(--paper-line); border-radius:3px; overflow:hidden; }
+  .usage-badge .bar-fill{ height:100%; background: var(--scan); }
+
+  .debug-badge{ position: fixed; right: 14px; bottom: 14px; font-family:'JetBrains Mono', monospace; font-size: 11px; color: var(--text-on-ink-dim); background: var(--ink-soft); border: 1px solid var(--ink-line); padding: 6px 10px; border-radius: 6px; z-index: 50; }
+</style>
 </head>
-<body class="bg-gray-100 min-h-screen pb-10">
-    <div class="max-w-2xl mx-auto mt-10 p-6 bg-white rounded-xl shadow-lg">
-        <div class="flex justify-between items-center mb-6">
-            <h2 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                <i data-lucide="cpu" class="text-blue-600"></i> Simple OCR
-            </h2>
-            <button onclick="clearAll()" class="text-sm text-red-500 hover:text-red-700 flex items-center gap-1 font-medium">
-                <i data-lucide="refresh-ccw" class="w-4 h-4"></i> Reset
-            </button>
-        </div>
-
-        <form id="ocrForm" method="POST" enctype="multipart/form-data" onsubmit="showLoading()">
-            <div class="space-y-4">
-                <!-- Dropzone/Input Area -->
-                <div class="relative border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-blue-400 transition-colors bg-gray-50">
-                    <input name="file" id="fileInput" type="file" required onchange="previewImage(event)"
-                           class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
-                    <div class="text-center" id="previewPlaceholder">
-                        <i data-lucide="image-plus" class="mx-auto w-10 h-10 text-gray-400 mb-2"></i>
-                        <p class="text-sm text-gray-600">Klik atau seret gambar ke sini</p>
-                    </div>
-                    <!-- Image Preview Area -->
-                    <img id="imagePreview" class="hidden mx-auto max-h-64 rounded shadow-sm img-compare" alt="Preview">
-                </div>
-
-                <button id="submitBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition flex justify-center items-center gap-2 shadow-md" type="submit">
-                    <span id="btnIcon"><i data-lucide="zap" class="w-5 h-5"></i></span>
-                    <span id="btnText">Mulai Scan Teks</span>
-                </button>
-            </div>
-        </form>
-
-        <!-- Perbandingan Hasil -->
-        {% if result %}
-        <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="space-y-2">
-                <p class="text-xs font-bold text-gray-500 uppercase tracking-wider text-center">Gambar Input</p>
-                <!-- Gambar yang di-upload ditampilkan kembali di sini -->
-                <div class="bg-gray-200 rounded-lg overflow-hidden border border-gray-300 flex items-center justify-center min-h-[200px]">
-                    <img src="" id="finalImage" class="w-full h-full object-contain img-compare">
-                </div>
-            </div>
-
-            <div class="space-y-2">
-                <p class="text-xs font-bold text-gray-500 uppercase tracking-wider text-center">Hasil Teks</p>
-                <div class="bg-blue-50 p-4 rounded-lg border border-blue-200 relative min-h-[200px]">
-                    <button onclick="copyToClipboard()" id="copyBtn" class="absolute top-2 right-2 p-1.5 bg-white border border-blue-200 rounded-md hover:bg-blue-100 transition-all shadow-sm">
-                        <i id="copyIcon" data-lucide="copy" class="w-4 h-4 text-blue-600"></i>
-                    </button>
-                    <p id="ocrResultText" class="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{{ result }}</p>
-                </div>
-            </div>
-        </div>
+<body>
+  <div class="page">
+    <div class="top-row">
+      <div>
+        <p class="eyebrow">Akarstack · OCR</p>
+        <h1>Ekstraksi teks dari gambar</h1>
+        <p class="subtitle">Upload gambar berisi teks, sistem akan memindai dan mengeluarkan hasilnya sebagai teks biasa.</p>
+      </div>
+      <div class="top-actions">
+        {% if is_login %}
+        <span class="user-chip"><b>{{ username }}</b> · {{ role }}</span>
+        <a class="reset-link" href="/auth/logout?next=/ocr/">Keluar</a>
+        {% else %}
+        <a class="login-btn" href="/auth/login?next=/ocr/">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+          Masuk
+        </a>
         {% endif %}
+        <button type="button" class="reset-link" onclick="clearAll()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+          Reset
+        </button>
+      </div>
     </div>
 
-    <script>
-        lucide.createIcons();
+    {% if usage.limit %}
+    <div class="usage-badge">
+      Pemakaian hari ini: {{ usage.used }}/{{ usage.limit }}
+      <span class="bar"><span class="bar-fill" style="width: {{ (usage.used / usage.limit * 100) | round | int }}%"></span></span>
+    </div>
+    {% endif %}
 
-        // Preview gambar saat dipilih
-        function previewImage(event) {
-            const reader = new FileReader();
-            reader.onload = function() {
-                const output = document.getElementById('imagePreview');
-                const placeholder = document.getElementById('previewPlaceholder');
-                output.src = reader.result;
-                output.classList.remove('hidden');
-                placeholder.classList.add('hidden');
-                
-                // Simpan ke localStorage sebentar agar tetap ada setelah reload page (opsional)
-                localStorage.setItem('lastImage', reader.result);
-            };
-            reader.readAsDataURL(event.target.files[0]);
-        }
+    {% with messages = get_flashed_messages() %}
+    {% if messages %}
+    <div class="flash-stack" role="status">
+      {% for msg in messages %}
+      <div class="flash">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span>{{ msg }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
 
-        // Tampilkan gambar di bagian perbandingan jika ada hasil
-        window.onload = function() {
-            const lastImage = localStorage.getItem('lastImage');
-            const finalImg = document.getElementById('finalImage');
-            if (lastImage && finalImg) {
-                finalImg.src = lastImage;
-            }
-        };
+    <div class="card">
+      <form id="ocrForm" method="POST" enctype="multipart/form-data" onsubmit="startScanning()">
+        <div class="dropzone" id="dropzone">
+          <div class="scan-line" id="scanLine"></div>
+          <input name="file" id="fileInput" type="file" required onchange="previewImage(event)" accept=".png,.jpg,.jpeg,.gif">
+          <div class="drop-placeholder" id="placeholder">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg>
+            <p>Klik atau seret gambar ke sini</p>
+            <p class="filetypes">PNG · JPG · JPEG · GIF</p>
+          </div>
+          <div class="preview-wrap" id="previewWrap">
+            <span class="corner tl"></span><span class="corner tr"></span>
+            <span class="corner bl"></span><span class="corner br"></span>
+            <img id="imagePreview" alt="Pratinjau gambar">
+          </div>
+        </div>
 
-        function showLoading() {
-            const btn = document.getElementById('submitBtn');
-            const btnText = document.getElementById('btnText');
-            const btnIcon = document.getElementById('btnIcon');
-            btn.disabled = true;
-            btn.classList.add('opacity-75', 'cursor-not-allowed');
-            btnIcon.innerHTML = '<div class="loader"></div>';
-            btnText.innerText = 'Memproses Gambar...';
-        }
+        <button class="submit" id="submitBtn" type="submit">
+          <span id="btnIcon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/></svg>
+          </span>
+          <span id="btnText">Pindai &amp; ekstrak teks</span>
+        </button>
+      </form>
 
-        function copyToClipboard() {
-            const text = document.getElementById('ocrResultText').innerText;
-            const btnIcon = document.getElementById('copyIcon');
-            navigator.clipboard.writeText(text).then(() => {
-                btnIcon.setAttribute('data-lucide', 'check');
-                lucide.createIcons();
-                setTimeout(() => {
-                    btnIcon.setAttribute('data-lucide', 'copy');
-                    lucide.createIcons();
-                }, 2000);
-            });
-        }
+      {% if result is not none %}
+      <div class="results">
+        <div>
+          <p class="panel-label">Gambar input</p>
+          <div class="image-panel">
+            <img id="finalImage" src="" alt="Gambar yang diunggah">
+          </div>
+        </div>
+        <div>
+          <p class="panel-label">Hasil</p>
+          <div class="output-panel">
+            <div class="output-head">
+              <span>ocr_output.txt</span>
+              {% if result %}
+              <button type="button" class="copy-btn" onclick="copyToClipboard()">
+                <svg id="copyIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                <span id="copyLabel">Salin</span>
+              </button>
+              {% endif %}
+            </div>
+            <div class="output-body">
+              {% if result %}
+              <span id="ocrResultText">{{ result }}</span>
+              {% else %}
+              <span class="output-empty">Nggak ada teks yang berhasil dideteksi. Coba gambar dengan kontras lebih jelas.</span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
 
-        function clearAll() {
-            localStorage.removeItem('lastImage');
-            window.location.href = "/ocr/";
-        }
-    </script>
+  {% if worker_id %}
+  <div class="debug-badge">worker: {{ worker_id }}</div>
+  {% endif %}
+
+  <script>
+    function previewImage(event){
+      const file = event.target.files[0];
+      if(!file) return;
+      const reader = new FileReader();
+      reader.onload = function(){
+        document.getElementById('imagePreview').src = reader.result;
+        document.getElementById('previewWrap').classList.add('active');
+        document.getElementById('placeholder').style.display = 'none';
+        localStorage.setItem('lastImage', reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+
+    window.onload = function(){
+      const lastImage = localStorage.getItem('lastImage');
+      const finalImg = document.getElementById('finalImage');
+      if(lastImage && finalImg){ finalImg.src = lastImage; }
+    };
+
+    function startScanning(){
+      const btn = document.getElementById('submitBtn');
+      const btnText = document.getElementById('btnText');
+      const btnIcon = document.getElementById('btnIcon');
+      const dropzone = document.getElementById('dropzone');
+      btn.disabled = true;
+      dropzone.classList.add('scanning');
+      btnIcon.innerHTML = '<span class="spinner"></span>';
+      btnText.textContent = 'Memindai...';
+    }
+
+    function copyToClipboard(){
+      const el = document.getElementById('ocrResultText');
+      if(!el) return;
+      navigator.clipboard.writeText(el.innerText).then(() => {
+        const label = document.getElementById('copyLabel');
+        const icon = document.getElementById('copyIcon');
+        label.textContent = 'Tersalin';
+        icon.innerHTML = '<polyline points="20 6 9 17 4 12"/>';
+        setTimeout(() => {
+          label.textContent = 'Salin';
+          icon.innerHTML = '<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>';
+        }, 1800);
+      });
+    }
+
+    function clearAll(){
+      localStorage.removeItem('lastImage');
+      window.location.href = "/ocr/";
+    }
+  </script>
 </body>
 </html>

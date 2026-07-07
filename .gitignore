@@ -12,3 +12,5 @@ results/*
 
 # Environments & Secrets
 .env
+
+build-push.ps1

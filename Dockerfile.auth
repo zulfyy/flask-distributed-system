@@ -1,0 +1,18 @@
+FROM python:3.11-slim
+
+RUN apt-get update && apt-get upgrade -y && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /www/main
+COPY requirements/auth.txt .
+COPY templates/login.html templates/login.html
+COPY templates/home.html templates/home.html
+COPY templates/dashboard.html templates/dashboard.html
+RUN pip install --no-cache-dir -r auth.txt
+COPY auth_service.py .
+COPY home_routes.py .
+COPY usage_limit.py .
+COPY session_config.py .
+
+EXPOSE 5005
+CMD ["python", "auth_service.py"]

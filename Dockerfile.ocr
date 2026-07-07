@@ -1,12 +1,24 @@
 FROM python:3.11-slim
 
 RUN apt-get update && apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends \
+        libgl1 \
+        libglib2.0-0 \
+        libgomp1 && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /www/main
 COPY requirements/ocr.txt .
-COPY templates/ocr.html templates/ocr.html
 RUN pip install --no-cache-dir -r ocr.txt
+
+# bake model PP-OCRv6 small ke image saat build,
+# biar container ga perlu internet / nunggu download pas start pertama
+# RUN python -c "from paddleocr import PaddleOCR; PaddleOCR(text_detection_model_name='PP-OCRv6_small_det', text_recognition_model_name='PP-OCRv6_small_rec', use_doc_orientation_classify=False, use_doc_unwarping=False, use_textline_orientation=False, device='cpu')"
+# Skip, karna CPU PC saye tak bisa build.
+
+COPY session_config.py .
+COPY usage_limit.py .
+COPY templates/ocr.html templates/ocr.html
 COPY ocr.py .
 
 EXPOSE 5002

@@ -1,4 +1,8 @@
 Flask
+Flask-Session
+redis
+python-dotenv
+psycopg[binary]
 Pillow
 numpy
 opencv-python-headless

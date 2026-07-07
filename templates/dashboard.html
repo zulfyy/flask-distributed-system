@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard · Akarstack</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#14181f; --paper:#f6f2e8; --paper-dim:#eae3d2; --paper-line:#ddd3ba;
+    --scan:#f2a63b; --scan-strong:#d98a1f;
+    --text-on-paper:#24211a; --text-on-paper-dim:#6b6558; --danger:#c65b4e; --ok:#5a9d6a;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;min-height:100vh;
+    background: radial-gradient(circle at 15% 0%, rgba(242,166,59,0.08), transparent 45%), var(--ink);
+    font-family:'Inter',system-ui,sans-serif;color:var(--paper);}
+  header{display:flex;align-items:center;justify-content:space-between;
+    padding:22px 32px;max-width:1040px;margin:0 auto;}
+  .brand{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:18px;color:var(--paper);
+    text-decoration:none;}
+  .brand span{color:var(--scan);}
+  nav a{color:var(--paper);text-decoration:none;font-size:13px;font-weight:600;margin-left:18px;
+    font-family:'JetBrains Mono',monospace;letter-spacing:.04em;}
+  main{max-width:1040px;margin:0 auto;padding:8px 32px 80px;}
+  .eyebrow{font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--scan);margin:0 0 6px;}
+  h1{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:28px;margin:0 0 28px;}
+  .role-badge{font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--paper-dim);
+    color:var(--text-on-paper-dim);padding:3px 8px;border-radius:5px;margin-left:10px;vertical-align:middle;}
+  .quota-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:32px;}
+  .quota-card{background:var(--paper);border-radius:12px;padding:20px;color:var(--text-on-paper);}
+  .quota-card .label{font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;
+    letter-spacing:.06em;color:var(--text-on-paper-dim);margin-bottom:8px;}
+  .quota-card .num{font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:700;}
+  .quota-card .num small{font-size:14px;font-weight:500;color:var(--text-on-paper-dim);}
+  .bar{height:6px;border-radius:4px;background:var(--paper-dim);margin-top:10px;overflow:hidden;}
+  .bar-fill{height:100%;background:var(--scan);}
+  .bar-fill.full{background:var(--danger);}
+  .quota-card a{display:inline-block;margin-top:12px;font-size:13px;font-weight:600;color:var(--scan-strong);text-decoration:none;}
+  .section-title{font-family:'Space Grotesk',sans-serif;font-size:17px;margin:0 0 14px;color:var(--paper);}
+  .history-box{background:var(--paper);border-radius:12px;overflow:hidden;color:var(--text-on-paper);}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  th{text-align:left;padding:12px 16px;background:var(--paper-dim);color:var(--text-on-paper-dim);
+    font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.05em;}
+  td{padding:12px 16px;border-top:1px solid var(--paper-line);}
+  td a{color:var(--scan-strong);text-decoration:none;font-weight:600;}
+  .empty{padding:24px 16px;color:var(--text-on-paper-dim);font-size:14px;font-style:italic;}
+  .flash-stack{max-width:1040px;margin:0 auto 8px;padding:0 32px;}
+  .flash{font-size:13px;padding:10px 14px;border-radius:6px;background:rgba(242,166,59,0.12);
+    border-left:3px solid var(--scan);color:var(--paper);margin-bottom:8px;}
+</style>
+</head>
+<body>
+  <header>
+    <a class="brand" href="/">akar<span>stack</span></a>
+    <nav>
+      <a href="/">Beranda</a>
+      <a href="/auth/logout">Logout</a>
+    </nav>
+  </header>
+
+  {% with messages = get_flashed_messages() %}
+  {% if messages %}
+  <div class="flash-stack">
+    {% for msg in messages %}<div class="flash">{{ msg }}</div>{% endfor %}
+  </div>
+  {% endif %}
+  {% endwith %}
+
+  <main>
+    <p class="eyebrow">Dashboard</p>
+    <h1>Halo, {{ username }} <span class="role-badge">{{ role }}</span></h1>
+
+    <div class="quota-grid">
+      {% for f in features %}
+      {% set u = usage[f.key] %}
+      <div class="quota-card">
+        <div class="label">{{ f.name }}</div>
+        {% if u.limit is none %}
+          <div class="num">Unlimited</div>
+        {% else %}
+          <div class="num">{{ u.used }} <small>/ {{ u.limit }} hari ini</small></div>
+          <div class="bar"><div class="bar-fill {{ 'full' if u.exceeded else '' }}"
+               style="width:{{ (u.used / u.limit * 100) if u.limit else 0 }}%"></div></div>
+        {% endif %}
+        <a href="{{ f.url }}">Buka {{ f.name }} &rarr;</a>
+      </div>
+      {% endfor %}
+    </div>
+
+    <p class="section-title">Riwayat Remove Background terakhir</p>
+    <div class="history-box">
+      {% if history %}
+      <table>
+        <tr><th>File</th><th>Tanggal</th><th></th></tr>
+        {% for h in history %}
+        <tr>
+          <td>{{ h.filename or '(tanpa nama)' }}</td>
+          <td>{{ h.created_at.strftime('%d %b %Y %H:%M') if h.created_at else '-' }}</td>
+          <td><a href="/rembg/history/download/{{ h.id }}">Download</a></td>
+        </tr>
+        {% endfor %}
+      </table>
+      {% else %}
+      <div class="empty">Belum ada riwayat remove background. Yuk coba di menu Remove Background.</div>
+      {% endif %}
+    </div>
+  </main>
+</body>
+</html>
