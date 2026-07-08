@@ -136,7 +136,18 @@ sudo DOPPLER_TOKEN='<your-doppler-token>' ./001-full-deploy.sh
 - Since the script runs directly on the Control Plane, `kubeconfig` (`/etc/rancher/k3s/k3s.yaml`) is already available locally on the server — **no need** to manually copy it to `~/.kube/config`.
 - The Load Balancer (Traefik) uses **Round Robin** by default to distribute traffic across the 2 Flask Workers.
 
-#### 🔐 Required Doppler Secrets (`prd_azure` config)
+#### 🔐 Required Doppler Secrets
+
+Project **`<your_doppler_project_name>`** uses branched configs: `prd` (base) → `prd_azure` (branch, inherits from `prd`).
+
+**Config `prd`** (base credentials)
+
+| Secret | Type | Description |
+|--------|------|--------------|
+| `USERNAME` | String | Base auth username |
+| `PASSWORD` | String | Base auth password |
+
+**Config `prd_azure`** (branched from `prd`)
 
 | Secret | Type | Description |
 |--------|------|--------------|
@@ -153,7 +164,7 @@ sudo DOPPLER_TOKEN='<your-doppler-token>' ./001-full-deploy.sh
 | `REDIS_HOST` | String | DragonFly (cache) host |
 | `SHOW_DEBUG_INFO` | String | Toggle debug info on/off |
 
-> Configure these in Doppler project **`<your_project_on_doppler>`** → config **`prd_azure`** before running the deploy script.
+> Use `DOPPLER_TOKEN` scoped to config **`prd_azure`** when running the deploy script — branched configs automatically inherit secrets from `prd`.
 
 ### 4️⃣ (Optional) Domain / DNS Setup
 If using a custom domain, point the following **DNS A Records** to the **Control Plane's public IP**:
