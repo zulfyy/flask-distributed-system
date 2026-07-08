@@ -27,7 +27,7 @@ FEATURES = [
     {
         'key': 'rembg',
         'name': 'Remove Background',
-        'desc': 'Hapus background gambar otomatis pakai AI (isnet-general-use).',
+        'desc': 'Hapus background gambar otomatis pakai AI (u2net).',
         'url': '/rembg/',
         'tracked': True,
     },
