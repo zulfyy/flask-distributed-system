@@ -21,7 +21,8 @@ os.makedirs(RESULT_FOLDER, exist_ok=True)
 
 # load model sekali aja waktu server nyala, jangan tiap request
 # soalnya load model ini berat, bisa bikin lemot kalo dipanggil terus
-rembg_session = new_session('isnet-general-use')
+rembg_session = new_session('u2net')
+#rembg_session = new_session('isnet-general-use')
 
 
 def get_conn():
@@ -358,4 +359,4 @@ def clear():
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=False)

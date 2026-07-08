@@ -7,3 +7,4 @@ Pillow
 numpy
 opencv-python-headless
 rembg[cpu]
+gunicorn==21.2.0
