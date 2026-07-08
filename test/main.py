@@ -1,8 +1,8 @@
 import os
 from flask import Flask, flash, request, redirect, url_for, render_template, send_from_directory
 from werkzeug.utils import secure_filename
-from database import Database
-from config import Config
+from test.database import Database
+from test.config import Config
 # from utils import format_tanggal_indo
 
 basedir = os.path.abspath(os.path.dirname(__file__))

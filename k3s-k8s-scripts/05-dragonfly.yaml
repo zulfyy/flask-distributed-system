@@ -1,0 +1,23 @@
+# Prereq: install Dragonfly operator first:
+# kubectl apply -f https://raw.githubusercontent.com/dragonflydb/dragonfly-operator/main/manifests/dragonfly-operator.yaml
+apiVersion: dragonflydb.io/v1alpha1
+kind: Dragonfly
+metadata:
+  name: akarstack-cache
+  namespace: akarstack
+spec:
+  replicas: 2 # primary (worker-1) + standby (worker-2), standby marked optional per your diagram
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchLabels:
+              app: akarstack-cache
+          topologyKey: kubernetes.io/hostname

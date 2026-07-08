@@ -1,12 +1,25 @@
-APP_MODE        =DEV
-APP_SECRET_KEY  =secret
+APP_MODE        =DEVELOPMENT
+APP_SECRET_KEY  =super-secret-key-anda
+SHOW_DEBUG_INFO =true # False kan nanti ini agar tak di | for i in {1..6}; do curl -sI http://ocr.akarstack.me/ocr/ | grep X-Worker-Id; done
 
+# Cookie — kosongin pas lokal, biar browser pakai host-only cookie
+COOKIE_DOMAIN =
 
-# Database
+# Redis / Dragonfly
+REDIS_HOST = redis://localhost:6379
+
+# Database Local dev
 DB_USER=user
-DB_NAME=db
-DB_PASSWORD=password
-DB_HOST=localhost
+DB_NAME=database_name
+DB_PASSWORD=password_default
 DB_PORT=5432
 
-# API
+DB_HOST=localhost
+# With Cloud
+# DB_HOST=NAMESPACE-pg-rw.NAMESPACE.svc.cluster.local
+
+# DB_HOST=postgres-cluster-rw.default.svc
+
+# Admin DASHBOARD
+ADMIN_USERNAME=admin
+ADMIN_DEFAULT_PASSWORD=change_when_deploy

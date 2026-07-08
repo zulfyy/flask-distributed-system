@@ -1,0 +1,39 @@
+# Each Service selects pods by label only (not by node) -> Traefik round-robins
+# across whichever worker the replicas landed on. This is the key to your
+# "auto round robin" question - it's the Service abstraction doing it, not Traefik config.
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth-svc
+  namespace: akarstack
+spec:
+  selector: { app: auth }
+  ports: [{ port: 5005, targetPort: 5005 }]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rembg-svc
+  namespace: akarstack
+spec:
+  selector: { app: rembg }
+  ports: [{ port: 5000, targetPort: 5000 }]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: meta-extract-svc
+  namespace: akarstack
+spec:
+  selector: { app: meta-extract }
+  ports: [{ port: 5001, targetPort: 5001 }]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ocr-svc
+  namespace: akarstack
+spec:
+  selector: { app: ocr }
+  ports: [{ port: 5002, targetPort: 5002 }]

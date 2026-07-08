@@ -6,8 +6,8 @@ __pycache__/
 env/
 
 # Project Files
-uploads/*
-results/*
+uploads/
+results/
 !uploads/.gitkeep
 
 # Environments & Secrets

@@ -14,8 +14,8 @@
 |---------|--------|--------|
 | Session 1 | Introduction + project idea | ✅ |
 | Session 2 | System architecture design | ✅ |
-| Session 3 | **Midterm (UTS)** — Proposal presentation | ⬜ |
-| Session 4 | **Final (UAS)** — System demo | ⬜ |
+| Session 3 | **Midterm (UTS)** — Proposal presentation | ✅ |
+| Session 4 | **Final (UAS)** — System demo | ⬜ (Video Record) |
 
 ---
 
@@ -34,19 +34,19 @@
 - [x] Ensure communication between components
 
 ### Session 3 — Midterm / UTS (Proposal)
-- [ ] Prepare proposal document with structure:
-  - [ ] Project title
-  - [ ] Background
-  - [ ] System goals
-  - [ ] Architecture diagram
-  - [ ] Technologies used
-- [ ] Practice presentation (5–7 minutes)
-- [ ] Ready to explain system architecture
+- [-] Prepare proposal document with structure:
+  - [-] Project title
+  - [-] Background
+  - [-] System goals
+  - [-] Architecture diagram
+  - [-] Technologies used
+- [-] Practice presentation (5–7 minutes)
+- [-] Ready to explain system architecture
 
 ### Session 4 — Final / UAS (Demo)
-- [ ] System fully implemented and running
-- [ ] Ready for live demo
-- [ ] Ready to explain architecture & tech stack
+- [✔] System fully implemented and running
+- [✔] Ready for live demo
+- [✔] Ready to explain architecture & tech stack
 
 ---
 
@@ -68,7 +68,7 @@ DragonFly (Cache)  (K3s Cluster) 1 Main | 1 (Optional)
       |
 Database / Storage (K3s Cluster) 1 Main, 1 Standby with CloudNativePG
       |
-Blob Storage Cloud (Considering)
+Blob Storage Cloud (Skip cause deadline)
 ```
 
 ---
@@ -80,4 +80,69 @@ Blob Storage Cloud (Considering)
 | Language | Python |
 | Framework | Flask |
 | Orchestration | K3s (Kubernetes) |
-| Cloud | _(planned later)_ |
+| Cloud | Azure |
+
+
+---
+
+## 🚀 How to Deploy
+
+> Order matters: Terraform → Ansible (inventory) → K3s Deploy Script.
+
+### 1️⃣ Provision Infrastructure — `terraform/`
+```bash
+cd terraform/
+terraform init
+terraform plan
+terraform apply
+```
+- After `apply` finishes, grab the output IPs (Control Plane, Workers, etc.):
+```bash
+  terraform output
+```
+
+### 2️⃣ Configure Ansible — `ansible/`
+> ⚠️ **IMPORTANT:** update `inventory.ini` with the IPs from Terraform above before running the playbook.
+
+```ini
+[control_plane]
+control-1 ansible_host=<CONTROL_PLANE_PUBLIC_IP>
+
+[workers]
+worker-1 ansible_host=<WORKER_1_PUBLIC_IP>
+worker-2 ansible_host=<WORKER_2_PUBLIC_IP>
+```
+
+Then run the playbook:
+```bash
+cd ansible/
+ansible-playbook -i inventory.ini playbook.yml
+```
+
+### 3️⃣ Deploy Manifests to K3s — `k3s-k8s-scripts/`
+> This runs **directly on the Control Plane server** (not from your local machine), using the `001-full-deploy.sh` script.
+
+> ⚠️ **Note:** make sure the private key `~/.ssh/id_rsa_azure` already exists on your machine before continuing.
+
+```bash
+eval $(ssh-agent)
+ssh-add ~/.ssh/id_rsa_azure
+
+ssh <user>@<CONTROL_PLANE_PUBLIC_IP>
+cd k3s-k8s-scripts/
+sudo ./001-full-deploy.sh
+```
+- Since the script runs directly on the Control Plane, `kubeconfig` (`/etc/rancher/k3s/k3s.yaml`) is already available locally on the server — **no need** to manually copy it to `~/.kube/config`.
+- The Load Balancer (Traefik) uses **Round Robin** by default to distribute traffic across the 2 Flask Workers.
+
+### 4️⃣ (Optional) Domain / DNS Setup
+If using a custom domain, point the following **DNS A Records** to the **Control Plane's public IP**:
+
+| Type | Name | Value |
+|------|------|-------|
+| A | `@` | `<CONTROL_PLANE_PUBLIC_IP>` |
+| A | `www` | `<CONTROL_PLANE_PUBLIC_IP>` |
+
+> Traefik (Load Balancer) runs on the Control Plane and forwards traffic to the Flask App on the worker nodes.
+
+---

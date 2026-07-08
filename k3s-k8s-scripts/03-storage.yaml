@@ -1,0 +1,67 @@
+# Shared storage buat uploads/ & results/ - dipakai bareng oleh 3 service Flask
+# (rembg, meta-extract, ocr) di worker-1 & worker-2.
+#
+# Pakai NFS volume bawaan Kubernetes (in-tree, built-in di kubelet) - TIDAK butuh
+# install CSI driver apapun, tidak butuh Rook-Ceph. NFS server-nya udah otomatis
+# disiapkan oleh playbook.yml (play "Setup NFS server di k3s-server").
+#
+# Prereq sebelum apply file ini:
+#   1. ansible-playbook -i inventory.ini playbook.yml   (sudah termasuk setup NFS server)
+#   2. Sanity check dari k3s-server: showmount -e localhost
+#      -> harus muncul /srv/nfs/uploads dan /srv/nfs/results
+
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-uploads
+spec:
+  capacity:
+    storage: 15Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  nfs:
+    server: 10.10.1.6   # Static private IP k3s-server, di-fix di terraform/main.tf (locals.static_private_ips)
+    path: /srv/nfs/uploads
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-uploads
+  namespace: akarstack
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: ""     # kosong = static binding, gak nunggu dynamic provisioner
+  volumeName: pv-uploads   # bind langsung ke PV di atas
+  resources:
+    requests:
+      storage: 15Gi
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-results
+spec:
+  capacity:
+    storage: 15Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  nfs:
+    server: 10.10.1.6   # Static private IP k3s-server, di-fix di terraform/main.tf (locals.static_private_ips)
+    path: /srv/nfs/results
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-results
+  namespace: akarstack
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: ""
+  volumeName: pv-results
+  resources:
+    requests:
+      storage: 15Gi

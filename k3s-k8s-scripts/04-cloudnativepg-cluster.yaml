@@ -1,0 +1,34 @@
+# Prereq: install CloudNativePG operator first:
+# kubectl apply -f https://raw.githubusercontent.com/cloudnative-pg/cloudnative-pg/release-1.24/releases/cnpg-1.24.1.yaml
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: akarstack-pg
+  namespace: akarstack
+spec:
+  instances: 2 # Primary (worker-1) + Standby (worker-2) - matches your diagram
+  storage:
+    size: 5Gi
+    # k3s ships "local-path" StorageClass by default -> no extra CSI driver needed.
+    # Fine here because podAntiAffinity below pins primary/standby to different nodes anyway.
+    # Postgres data should NEVER sit on Azure Files/NFS (no fsync guarantees) - local-path is correct.
+    storageClass: local-path
+  affinity:
+    # spread primary/standby across the two worker nodes
+    podAntiAffinityType: required
+    topologyKey: kubernetes.io/hostname
+  bootstrap:
+    initdb:
+      database: akarstack
+      owner: akarstack_app
+      secret:
+        # WAJIB kalau mau DB_USER/DB_PASSWORD di Doppler app-env (09-doppler-app-secret.yaml)
+        # match dengan user Postgres yang beneran CNPG buat. Tanpa ini, CNPG generate
+        # password random sendiri buat 'akarstack_app', yang gak bakal sama dengan
+        # DB_PASSWORD yang kamu isi manual di Doppler -> psycopg auth gagal.
+        # Secret ini butuh key 'username' & 'password' (format CNPG), isinya HARUS
+        # sama persis dengan DB_USER/DB_PASSWORD di config Doppler app-env kamu.
+        name: akarstack-pg-app-credentials
+  # secrets pulled from Doppler-synced k8s Secret (see 08-doppler-secret.yaml)
+  superuserSecret:
+    name: akarstack-pg-superuser

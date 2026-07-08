@@ -1,0 +1,41 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: akarstack-routes
+  namespace: akarstack
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: PathPrefix(`/rembg`)
+      kind: Rule
+      services:
+        - name: rembg-svc
+          port: 5000
+    - match: PathPrefix(`/meta-extract`)
+      kind: Rule
+      services:
+        - name: meta-extract-svc
+          port: 5001
+    - match: PathPrefix(`/ocr`)
+      kind: Rule
+      services:
+        - name: ocr-svc
+          port: 5002
+    - match: PathPrefix(`/auth`)
+      kind: Rule
+      services:
+        - name: auth-svc
+          port: 5005
+    - match: PathPrefix(`/dashboard`)
+      kind: Rule
+      services:
+        - name: auth-svc
+          port: 5005
+    - match: PathPrefix(`/`)
+      kind: Rule
+      services:
+        - name: auth-svc
+          port: 5005
+  tls:
+    secretName: akarstack-tls

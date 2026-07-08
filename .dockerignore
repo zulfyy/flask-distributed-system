@@ -12,10 +12,12 @@ uploads/
 env/
 
 # Project Files
-uploads/*
-results/*
+uploads/
+results/
 !uploads/.gitkeep
 
 #Custom
-k3s-k8s-scripts/*
-terraform/*
+k3s-k8s-scripts/
+terraform/
+ansible/
+ss/

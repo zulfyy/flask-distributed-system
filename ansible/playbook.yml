@@ -1,0 +1,216 @@
+---
+# Hardening SSH cuma di k3s-server (satu-satunya node yang punya Public IP /
+# exposed ke internet). worker-1 & worker-2 SENGAJA di-skip dari play ini:
+# - gak ada Public IP, akses cuma lewat SSH ProxyJump via k3s-server
+# - jadi risiko brute-force langsung ke worker praktis nol, gak perlu fail2ban
+# - port SSH juga TIDAK diubah dulu (tetap 22) - biar gak ada drama
+#   reconnect/port-mismatch kayak sebelumnya. Bisa dipertimbangkan lagi nanti
+#   kalau proyek udah stabil & mau extra hardening.
+- name: Harden SSH (fail2ban only, port tetap default) di k3s-server
+  hosts: k3s_server
+  become: true
+  tasks:
+    - name: Disable root login via SSH
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?PermitRootLogin'
+        line: 'PermitRootLogin no'
+        state: present
+        validate: '/usr/sbin/sshd -t -f %s'
+      notify: restart ssh
+
+    - name: Install fail2ban
+      apt:
+        name: fail2ban
+        state: present
+        update_cache: true
+
+    - name: Konfigurasi jail sshd (maxretry=5, ban 1 jam - gak seketat sebelumnya)
+      copy:
+        dest: /etc/fail2ban/jail.d/sshd.local
+        content: |
+          [sshd]
+          enabled  = true
+          port     = 22
+          backend  = systemd
+          maxretry = 5
+          findtime = 600
+          bantime  = 3600
+        mode: "0644"
+      notify: restart fail2ban
+
+    - name: Pastikan fail2ban jalan & enabled
+      service:
+        name: fail2ban
+        state: started
+        enabled: true
+  handlers:
+    - name: restart ssh
+      service:
+        name: ssh
+        state: restarted
+
+    - name: restart fail2ban
+      service:
+        name: fail2ban
+        state: restarted
+
+- name: Install k3s server (control-plane)
+  hosts: k3s_server
+  become: true
+  tasks:
+    - name: Get private IP address of the server
+      set_fact:
+        server_private_ip: "{{ ansible_default_ipv4.address }}"
+
+    - name: Install k3s server
+      shell: |
+        curl -sfL https://get.k3s.io | sh -s - server --write-kubeconfig-mode 644
+      args:
+        creates: /usr/local/bin/k3s
+      # Note: Traefik diaktifkan secara default di K3s, jadi --disable traefik=false tidak diperlukan.
+      # Jika kamu ingin mematikan traefik bawaan, gunakan: --disable traefik
+
+    - name: Wait for node-token to be generated
+      wait_for:
+        path: /var/lib/rancher/k3s/server/node-token
+        timeout: 60
+
+    - name: Fetch node token
+      slurp:
+        src: /var/lib/rancher/k3s/server/node-token
+      register: node_token
+
+    - name: Set fact for join token
+      set_fact:
+        k3s_token: "{{ node_token.content | b64decode | trim }}"
+
+    - name: Share token and private IP with other hosts
+      add_host:
+        name: "token_holder"
+        k3s_token: "{{ k3s_token }}"
+        server_private_ip: "{{ server_private_ip }}"
+
+    - name: Fetch kubeconfig to local machine
+      fetch:
+        src: /etc/rancher/k3s/k3s.yaml
+        dest: ./kubeconfig
+        flat: true
+
+    - name: Taint k3s-server biar app pod (Deployment/CNPG/Dragonfly) gak ke-schedule di control-plane
+      # --overwrite bikin ini aman di-rerun (idempotent), jadi gak perlu step manual
+      # terpisah kayak sebelumnya (rawan lupa dijalanin sebelum apply 02/03/04.yaml).
+      command: k3s kubectl taint nodes k3s-server node-role.kubernetes.io/control-plane=true:NoSchedule --overwrite
+      changed_when: true
+
+- name: Join workers to k3s cluster
+  hosts: k3s_workers
+  become: true
+  vars:
+    # Worker mengambil Private IP server dari token_holder
+    server_ip: "{{ hostvars['token_holder']['server_private_ip'] }}"
+    k3s_token: "{{ hostvars['token_holder']['k3s_token'] }}"
+  tasks:
+    - name: Install k3s agent and join cluster via Private IP
+      shell: |
+        curl -sfL https://get.k3s.io | K3S_URL=https://{{ server_ip }}:6443 K3S_TOKEN={{ k3s_token }} sh -s - agent --node-label worker=true
+      args:
+        creates: /usr/local/bin/k3s
+
+# NOTE after this playbook:
+# 1. Fix kubeconfig agar bisa diakses dari laptop kamu:
+#    Ganti 127.0.0.1 dengan Public IP dari k3s-server. Contoh:
+#    sed -i 's/127.0.0.1/20.123.45.67/' ./kubeconfig
+# 2. export KUBECONFIG=./kubeconfig
+# 3. Pastikan di Azure NSG, port 6443 tidak di-expose ke publik (sesuai terraform: NSG cuma buka
+#    ssh_port/80/443). var.my_ip sudah dihapus dari terraform, jadi kalau mau kubectl dari laptop
+#    connect langsung ke API server, gunakan SSH tunneling lewat k3s-server, contoh:
+#    ssh -L 6443:localhost:6443 azureuser@<k3s-server-public-ip>   # port 22 (default, belum diubah)
+
+# ============================================================================
+# TAMBAHAN: Setup NFS server di k3s-server (shared storage buat uploads/ & results/
+# yang dipakai bareng oleh 3 service Flask: rembg, meta-extract, ocr).
+# Ganti CephFS -> NFS: disk osd-disk-k3s-server yang udah di-attach Terraform
+# diformat & di-export via NFS, worker-1/worker-2 mount folder yang sama ini.
+# Ini play TERPISAH, gak ubah apapun di play-play sebelumnya di atas.
+# ============================================================================
+- name: Setup NFS server di k3s-server (shared uploads/results)
+  hosts: k3s_server
+  become: true
+  vars:
+    nfs_disk_device: /dev/disk/azure/scsi1/lun10   # sesuai lun=10 di terraform (azurerm_virtual_machine_data_disk_attachment)
+    nfs_mount_path: /srv/nfs
+  tasks:
+    - name: Cek apakah disk sudah punya filesystem (biar gak format ulang tiap re-run)
+      command: blkid {{ nfs_disk_device }}
+      register: nfs_blkid_check
+      failed_when: false
+      changed_when: false
+
+    - name: Format disk jadi ext4 (cuma kalau belum ada filesystem)
+      filesystem:
+        fstype: ext4
+        dev: "{{ nfs_disk_device }}"
+      when: nfs_blkid_check.rc != 0
+
+    - name: Pastikan mount point ada
+      file:
+        path: "{{ nfs_mount_path }}"
+        state: directory
+        mode: "0755"
+
+    - name: Mount disk + tambahkan entry /etc/fstab (idempotent)
+      mount:
+        path: "{{ nfs_mount_path }}"
+        src: "{{ nfs_disk_device }}"
+        fstype: ext4
+        state: mounted
+
+    - name: Buat folder uploads & results di atas disk yang sudah di-mount
+      file:
+        path: "{{ nfs_mount_path }}/{{ item }}"
+        state: directory
+        mode: "0777"   # simple project, no fancy uid/gid mapping
+      loop:
+        - uploads
+        - results
+
+    - name: Install nfs-kernel-server
+      apt:
+        name: nfs-kernel-server
+        state: present
+        update_cache: true
+
+    - name: Konfigurasi /etc/exports
+      copy:
+        dest: /etc/exports
+        content: |
+          {{ nfs_mount_path }}/uploads 10.10.1.0/24(rw,sync,no_subtree_check,no_root_squash)
+          {{ nfs_mount_path }}/results 10.10.1.0/24(rw,sync,no_subtree_check,no_root_squash)
+        mode: "0644"
+      notify: re-export nfs
+
+    - name: Pastikan nfs-kernel-server jalan & enabled
+      service:
+        name: nfs-kernel-server
+        state: started
+        enabled: true
+  handlers:
+    - name: re-export nfs
+      command: exportfs -ra
+
+# ============================================================================
+# TAMBAHAN: Install NFS client di worker-1/worker-2, biar kubelet bisa mount
+# PVC (pv-uploads/pv-results) yang nunjuk ke NFS server di k3s-server.
+# Tanpa ini, pod bakal error "mount.nfs: not found" pas coba mount volume.
+# Play terpisah, gak ubah apapun di play-play sebelumnya.
+# ============================================================================
+- name: Install NFS client di worker (biar bisa mount shared uploads/results)
+  hosts: k3s_workers
+  become: true
+  tasks:
+    - name: Install nfs-common
+      apt:
+        name: nfs-common
+        state: present
+        update_cache: true

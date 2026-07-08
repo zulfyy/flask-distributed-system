@@ -1,0 +1,30 @@
+# Prereq: install cert-manager first:
+# kubectl apply -f https://github.com/cert-manager/cert-manager/releases/latest/download/cert-manager.yaml
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+spec:
+  acme:
+    #server: https://acme-v02.api.letsencrypt.org/directory # PROD
+    server: https://acme-staging-v02.api.letsencrypt.org/directory #Staging
+    email: "zulfyproject@gmail.com" # email buat notifikasi Let's Encrypt
+    privateKeySecretRef:
+      name: letsencrypt-prod-key
+    solvers:
+      - http01:
+          ingress:
+            class: traefik
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: akarstack-tls
+  namespace: akarstack
+spec:
+  secretName: akarstack-tls
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+  dnsNames:
+    - akarstack.me
