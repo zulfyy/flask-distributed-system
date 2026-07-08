@@ -130,10 +130,30 @@ ssh-add ~/.ssh/id_rsa_azure
 
 ssh <user>@<CONTROL_PLANE_PUBLIC_IP>
 cd k3s-k8s-scripts/
-sudo ./001-full-deploy.sh
+sudo DOPPLER_TOKEN='<your-doppler-token>' ./001-full-deploy.sh
 ```
+- Secrets are injected via **Doppler** using `DOPPLER_TOKEN` — no `.env` file needed on the server.
 - Since the script runs directly on the Control Plane, `kubeconfig` (`/etc/rancher/k3s/k3s.yaml`) is already available locally on the server — **no need** to manually copy it to `~/.kube/config`.
 - The Load Balancer (Traefik) uses **Round Robin** by default to distribute traffic across the 2 Flask Workers.
+
+#### 🔐 Required Doppler Secrets (`prd_azure` config)
+
+| Secret | Type | Description |
+|--------|------|--------------|
+| `ADMIN_DEFAULT_PASSWORD` | String | Default admin login password |
+| `ADMIN_USERNAME` | String | Default admin login username |
+| `APP_MODE` | String | App environment mode (e.g. `production`) |
+| `APP_SECRET_KEY` | String | Flask secret key (session/CSRF signing) |
+| `COOKIE_DOMAIN` | String | Domain scope for cookies |
+| `DB_HOST` | String | PostgreSQL host (CloudNativePG) |
+| `DB_NAME` | String | Database name |
+| `DB_PASSWORD` | String | Database password |
+| `DB_PORT` | String | Database port |
+| `DB_USER` | String | Database user |
+| `REDIS_HOST` | String | DragonFly (cache) host |
+| `SHOW_DEBUG_INFO` | String | Toggle debug info on/off |
+
+> Configure these in Doppler project **`<your_project_on_doppler>`** → config **`prd_azure`** before running the deploy script.
 
 ### 4️⃣ (Optional) Domain / DNS Setup
 If using a custom domain, point the following **DNS A Records** to the **Control Plane's public IP**:
