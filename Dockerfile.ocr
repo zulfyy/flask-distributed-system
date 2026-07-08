@@ -23,4 +23,4 @@ COPY ocr.py .
 
 EXPOSE 5002
 #CMD ["python", "ocr.py"]
-CMD ["gunicorn", "-w", "1", "--timeout", "30", "-b", "0.0.0.0:5002", "ocr:app"]
+CMD ["gunicorn", "-w", "1", "--timeout", "60", "-b", "0.0.0.0:5002", "ocr:app"]
